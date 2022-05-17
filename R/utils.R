@@ -1,3 +1,4 @@
+# Transpose and string split factor levels
 tstrsplit_factor <- function(fac, split){
   lev <- levels(fac)
   ind <- as.integer(fac)
@@ -5,27 +6,20 @@ tstrsplit_factor <- function(fac, split){
   lapply(split, function(x) x[ind])
 }
 
-validate_query <- function(query){
-  if(!("list" %in% class(query))) return(NULL)
-  names(query) <- tolower(names(query))
-  if(!("country" %in% names(query))) return(NULL)
-  return(query[["country"]][1])
-}
 
+# Trycatch infix function
 `%iferror%` <- function(a, b) tryCatch({a}, error = function(e){b})
 
-data_unavil_ggplot<- function(...){
-  g <- ggplot2::ggplot(NULL, aes(1,1,label = paste0(..., collapse = ""))) +
-    ggplot2::theme_void() +
-    ggplot2::geom_text(size = 5, colour = djprtheme::djpr_blue) +
-    ggplot2::theme(panel.background = element_rect(fill = "#bfbfbf"))
-  djprtheme::gg_font_change(g, "Roboto")
+
+# Assign multiple lazy data frames to global environement
+assign_table_global <- function(con, tables){
+  lapply(tables, function(tab){
+    assign(tab, dplyr::tbl(con, tab), envir = .GlobalEnv)
+  })
 }
 
-error_safe_plotfun <- function(plotfun){
-    function(...) plotfun(...) %iferror% data_unavil_ggplot("Data unavailable")
-}
 
+# Format dollar figures
 dollar_stat <- function(stat){
   dplyr::case_when(
     stat > 1e10 ~ scales::dollar(
@@ -67,18 +61,62 @@ dollar_stat <- function(stat){
   )
 }
 
-slide_mean <- function(x, before = 5){
-  n_before <- c(seq_len(before), rep(before + 1, length(x) - before))
-  data.table::frollmean(x, n_before, adaptive = TRUE)
+
+# Delete cache files
+kill_cache <- function(...){
+  unlink("./app-cache/*", recursive = TRUE, force = TRUE)
 }
 
 
-#Unused
-append_header <- function(...){
-  htmltools::tags$script(
-    HTML(
-    "var header = $('.navbar > .container-fluid > .navbar-collapse');
-     header.append('",HTML(...),"')"
-    )
+# Shiny components
+bop_date_slider <- function(
+  id,
+  label = "Dates",
+  min = bop_dates$min,
+  max = bop_dates$max,
+  value = c(bop_dates$min, bop_dates$max),
+  width = "90%",
+  timeFormat = "%b %Y",
+  dragRange = TRUE,
+  ticks = FALSE,
+  ...
+  ){
+  shiny::sliderInput(
+    shiny::NS(id, "dates"),
+    label = "Dates",
+    min = min,
+    max = max,
+    value = value,
+    width = width,
+    timeFormat = timeFormat,
+    dragRange = dragRange,
+    ticks = ticks,
+    ...
+  )
+}
+
+merch_date_slider <- function(
+  id,
+  label = "Dates",
+  min = merch_dates$min,
+  max = merch_dates$max,
+  value = c(merch_dates$min, merch_dates$max),
+  width = "90%",
+  timeFormat = "%b %Y",
+  dragRange = TRUE,
+  ticks = FALSE,
+  ...
+){
+  shiny::sliderInput(
+    shiny::NS(id, "dates"),
+    label = "Dates",
+    min = min,
+    max = max,
+    value = value,
+    width = width,
+    timeFormat = timeFormat,
+    dragRange = dragRange,
+    ticks = ticks,
+    ...
   )
 }

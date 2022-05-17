@@ -1,11 +1,11 @@
 #' Create a table for the dashboard or a briefing document
 #' @param data A data frame containing data to summarise
 #' @param destination "dashboard" or "briefing"
-#' @param country_or_product "Country" or "Product"
 #' @param notes Optional notes to add to caption. Source will be inferred
 #' automatically based on the data using `caption_auto()`.
 #' @param title Character vector to use as the table title. Will only be used
 #' when `destination` is "briefing".
+#' @param header_row Top row labels
 #' @examples
 #' # dash_data <- load_dash_data()
 #' \dontrun{
@@ -24,25 +24,41 @@
 #' )
 #' }
 #
-make_table_launchpad <- function(data,
-                       destination = Sys.getenv("R_DJPRLABOURDASH_TABLEDEST",
-                                                unset = "dashboard"
-                       ),
-                       notes = NULL,
-                       title = "",
-                       header_row = c("",
-                                      "Current figure & share (%)",
-                                      "Change in latest period",
-                                      "Change in three months",
-                                      "Change in past year")) {
+make_table_launchpad <- function(
+  data,
+  destination = Sys.getenv("R_DJPRLABOURDASH_TABLEDEST", unset = "dashboard"),
+  notes = NULL,
+  title = "",
+  header_row = c(
+    "",
+    "Current figure & share (%)",
+    "Change in latest period",
+    "Change in three months",
+    "Change in past year")
+  ){
 
   stopifnot(destination %in% c("dashboard", "briefing"))
   stopifnot(inherits(data, "data.frame"))
   stopifnot(nrow(data) >= 1)
 
-    # Create a basic flextable using the supplied dataframe
-  flex <- data%>%
-    flextable::flextable()
+  # Create a basic flextable using the supplied dataframe
+  latest_date <- names(data)[2] %>%
+    lubridate::my() %>%
+    format("%B %Y")
+
+  if (is.element("Dec 2019", names(data))){
+    caption <- paste0("ABS Balance of Payment quarterly data (latest data is from ", latest_date, ").  Note: Data seasonally Adjusted & Chain Volume Measures")
+  } else {
+    caption <- paste0("ABS.Stat Merchandise Exports by Commodity (latest data is from ", latest_date, "). Data has been smoothed using 12-month rolling averages." )
+  }
+
+
+
+  flex <- data %>%
+    flextable::flextable() %>%
+    flextable::add_footer(` ` = caption) %>%
+    flextable::fontsize(size = 7, part = "footer") %>%
+    flextable::merge_at(j = 1:5, part = "footer")
 
   if (destination == "dashboard") {
     # Define cell colours ----
@@ -97,7 +113,7 @@ make_table_launchpad <- function(data,
 
   # Ensure font, font size, and bolding is correct
   if (destination == "dashboard") {
-    font_family <- "Roboto"
+    font_family <- "VIC-Regular"
     font_size_main <- 10.5
     font_size_secondary <- 9
   } else if (destination == "briefing") {
